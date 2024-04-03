@@ -32,7 +32,7 @@ function isLeapYearJalali(year) {
 function getStartOfTheMonthHeader(d, header) {
   header.jalali = d.toLocaleDateString("fa-IR", {
     month: "long",
-    year:"numeric"
+    year: "numeric"
   });
   header.gregorian = d.toLocaleDateString("en-US", {
     month: "long",
@@ -54,9 +54,8 @@ function getEndOfTheMonthHeader(d, header) {
   const miladiYear = d.toLocaleDateString("en-US", { year: "numeric" });
   const miladiMonth = d.toLocaleDateString("en-US", { month: "long" });
   if (header.gregorian.includes(miladiYear)) {
-    header.gregorian = `${header.gregorian.split(" ")[0]} - ${miladiMonth}  ${
-      header.gregorian.split(" ")[1]
-    }`;
+    header.gregorian = `${header.gregorian.split(" ")[0]} - ${miladiMonth}  ${header.gregorian.split(" ")[1]
+      }`;
   } else {
     header.gregorian += ` - ${miladiMonth} ${miladiYear}`;
   }
@@ -161,7 +160,7 @@ async function getMonth(year, month) {
     }
   }
 
-  for (let i = 0; i <= lengthOfMonth; ) {
+  for (let i = 0; i <= lengthOfMonth;) {
     const monthNumber = Number(d.toLocaleDateString("fa-IR-u-nu-latn", { month: "numeric" }));
     const day = {};
     weekdayLong = d.toLocaleDateString("fa-IR", { weekday: "long" });
@@ -383,11 +382,28 @@ async function getCalendar(y, m) {
 
 const app = express();
 const port = 5000;
+
+app.get("/holidays/:year/:month?", async (req, res) => {
+  const thisYear = Number(new Date().toLocaleDateString("fa-IR-u-nu-latn", { year: "numeric" }));
+  const year = (!req.params.year || req.params.year < 1300 || req.params.year > 1500) ? thisYear : Number(req.params.year);
+  const month = !req.params.month || req.params.month < 1 || req.params.month > 12 ? false : req.params.month;
+
+  const calendar = await getCalendar(year, month);
+  const holidays = calendar.map((el, index) => ({
+    jalaliMonthNumber: index + 1,
+    holidaysJalali: el.days.filter(dd => dd.events.isHoliday).map(dd => dd.day.jalali),
+    holidaysGregorian: el.days.filter(dd => dd.events.isHoliday).map(dd => dd.day.gregorian),
+    holidaysHijri: el.days.filter(dd => dd.events.isHoliday).map(dd => dd.day.hijri),
+  }));
+  res.json({ calendar: calendar, holidays: holidays });
+
+})
+
 app.get("/", async (req, res) => {
   const { query } = req;
   const thisYear = Number(new Date().toLocaleDateString("fa-IR-u-nu-latn", { year: "numeric" }));
   const y = Number(query.year);
-  const year = !y || (y < 1300 && y > 1500) ? thisYear : Number(query.year);
+  const year = (!y || y < 1300 || y > 1500) ? thisYear : Number(query.year);
   const month =
     query.month && Number(query.month) >= 1 && Number(query.month) <= 12
       ? Number(query.month)
